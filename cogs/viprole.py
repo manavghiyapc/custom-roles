@@ -6,7 +6,7 @@ import json
 import requests
 from data_access import read_file, write_file
 
-role_id = "ROLE_ID_HERE"
+role_id = 1069444965870088192
 
 template = {
     "name": "default",
@@ -15,17 +15,34 @@ template = {
     "roleid": ""
 }
 
+color_map = {
+    "black": "0x000000",
+    "white": "0xFFFFFF",
+    "red": "0xFF0000",
+    "green": "0x00FF00",
+    "blue": "0x0000FF",
+    "yellow": "0xFFFF00",
+    "cyan": "0x00FFFF",
+    "magenta": "0xFF00FF",
+    "gray": "0x808080",
+    "brown": "0xA52A2A",
+    "orange": "0xFFA500",
+    "pink": "0xFFC0CB",
+    "purple": "0x800080",
+    "teal": "0x008080",
+    "maroon": "0x800000",
+    "navy": "0x000080",
+    "olive": "0x808000",
+    "lime": "0x00FF00",
+    "indigo": "0x4B0082",
+    "turquoise": "0x40E0D0"
+}
+
 def get_emoji_url(text: str):
     if text.startswith("<:") or text.startswith("<a:") and text.endswith(">"): 
         [first, _, third] = text.split(":")
         emojiId = third.replace(">", "")
-        # Only returns the png version of the emoji, Role icons only work for png, jpg and apngs (not gif)
-        return f"https://cdn.discordapp.com/emojis/{emojiId}.png" 
-        # This code is to support animate emojis but it doesn't work due to ^ above 
-        # if first.startswith("<a"): 
-        #     return f"https://cdn.discordapp.com/emojis/{emojiId}.gif" # Currently doesn't work correctly since Discord only accepts apngs and not gifs 
-        # else: 
-        #     return f"https://cdn.discordapp.com/emojis/{emojiId}.png"
+        return f"https://cdn.discordapp.com/emojis/{emojiId}.png"
 
 def read_file():
     with open("data.json", "r") as file:
@@ -48,7 +65,7 @@ class role(commands.Cog):
     async def name(
             self,
             ctx,
-            parameter: Option(str, "Enter Name for the Role", required=True)): # type: ignore
+            parameter: Option(str, "Enter Name for the Role", required=True)):
         await ctx.response.defer(ephemeral=True)
 
         if any(r.id == int(role_id) for r in ctx.author.roles):
@@ -64,7 +81,7 @@ class role(commands.Cog):
                 write_file(main_file_content)               
 
                 role = ctx.guild.get_role(int(already_content['roleid']))
-                await role.edit(name = parameter, reason=f"Role Edit by {ctx.author.name}")
+                await role.edit(name=parameter, reason=f"Role Edit by {ctx.author.name}")
 
                 embed = discord.Embed(
                     description=f"Role Name Updated from `{oldname}` to <@&{oldid}>", color=0x2E3136)
@@ -72,10 +89,9 @@ class role(commands.Cog):
             else:
                 main_file_content = read_file()
                 newtemp = template
-                newtemp['name']  = parameter
+                newtemp['name'] = parameter
 
                 role = await ctx.guild.create_role(name=parameter, reason=f"VIP Role Creation by {ctx.author.name}")
-
 
                 await role.edit(position=45)
                 await ctx.author.add_roles(role)
@@ -95,11 +111,14 @@ class role(commands.Cog):
     async def colour(
             self,
             ctx,
-            parameter: Option(str, "Enter HexColour for the Role", required=True)): # type: ignore
+            parameter: Option(str, "Enter Colour Name or HexColour for the Role", required=True)):
         await ctx.response.defer(ephemeral=True)
 
+        parameter = parameter.lower()
         parameter = parameter.replace('#', '').replace('0x', '')
-        parameter = "0x" + parameter
+
+        if parameter in color_map:
+            parameter = color_map[parameter]
 
         if any(r.id == int(role_id) for r in ctx.author.roles):
             main_file_content = read_file()
@@ -112,7 +131,6 @@ class role(commands.Cog):
                 main_file_content[str(ctx.author.id)] = already_content
                 write_file(main_file_content)
 
-                #role colour update 
                 await ctx.guild.get_role(int(oldid)).edit(color=int(parameter, 16), reason=f"Role Colour Edit by {ctx.author.name}")
 
                 embed = discord.Embed(
@@ -129,7 +147,7 @@ class role(commands.Cog):
             await ctx.respond(embed=embed)
 
     @role.command(description="Add Icon to Custom Role")
-    async def icon(self, ctx, parameter: Option(str, "Enter an Emoji", required=True)): # type: ignore
+    async def icon(self, ctx, parameter: Option(str, "Enter an Emoji", required=True)):
 
         await ctx.response.defer(ephemeral=True)
         eparameter = parameter
@@ -174,8 +192,6 @@ class role(commands.Cog):
                         title="Icon Set Successfully :white_check_mark:", color=0x2E3136)
                     embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly")
                     await ctx.respond(embed=embed)
-
-
 
             else:
                 embed = discord.Embed(

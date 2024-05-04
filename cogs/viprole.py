@@ -6,12 +6,26 @@ import json
 import requests
 from data_access import read_file, write_file
 
+role_access = 'VIP Trainer'
+
 template = {
     "name": "default",
     "colour": "",
     "emoji": "",
     "roleid": ""
 }
+
+def get_emoji_url(text: str):
+    if text.startswith("<:") or text.startswith("<a:") and text.endswith(">"): 
+        [first, _, third] = text.split(":")
+        emojiId = third.replace(">", "")
+        # Only returns the png version of the emoji, Role icons only work for png, jpg and apngs (not gif)
+        return f"https://cdn.discordapp.com/emojis/{emojiId}.png" 
+        # This code is to support animate emojis but it doesn't work due to ^ above 
+        # if first.startswith("<a"): 
+        #     return f"https://cdn.discordapp.com/emojis/{emojiId}.gif" # Currently doesn't work correctly since Discord only accepts apngs and not gifs 
+        # else: 
+        #     return f"https://cdn.discordapp.com/emojis/{emojiId}.png"
 
 def read_file():
     with open("data.json", "r") as file:
@@ -34,10 +48,10 @@ class role(commands.Cog):
     async def name(
             self,
             ctx,
-            parameter: Option(str, "Enter Name for the Role", required=True)):
+            parameter: Option(str, "Enter Name for the Role", required=True)): # type: ignore
         await ctx.response.defer()
 
-        if 'VIP Trainer' in str(ctx.author.roles):
+        if role_access in str(ctx.author.roles):
 
             main_file_content = read_file()
 
@@ -81,7 +95,7 @@ class role(commands.Cog):
     async def colour(
             self,
             ctx,
-            parameter: Option(str, "Enter HexColour for the Role", required=True)):
+            parameter: Option(str, "Enter HexColour for the Role", required=True)): # type: ignore
         await ctx.response.defer()
 
         parameter = parameter.replace('#', '').replace('0x', '')
@@ -89,7 +103,7 @@ class role(commands.Cog):
 
 
 
-        if 'VIP Trainer' in str(ctx.author.roles):
+        if role_access in str(ctx.author.roles):
 
             main_file_content = read_file()
 
@@ -118,45 +132,50 @@ class role(commands.Cog):
             await ctx.respond(embed=embed)
 
     @role.command(description="Add Icon to Custom Role")
-    async def icon(self,
-            ctx,
-            parameter: Option(str, "Enter an Emoji", required=True)):
+    async def icon(self, ctx, parameter: Option(str, "Enter an Emoji", required=True)): # type: ignore
 
         await ctx.response.defer()
         eparameter = parameter
         parameter = parameter.split(':')[-1].replace('>','')
-
         main_file_content = read_file()
 
-        if 'VIP Trainer' in str(ctx.author.roles):
+        if role_access in str(ctx.author.roles):
             if str(ctx.author.id) in main_file_content:
                 try:
-                    emoji = discord.utils.get(ctx.guild.emojis, id=int(parameter))
-                    url = emoji.url
+                    url = get_emoji_url(eparameter)
+                    if url is None: 
+                        already_content = main_file_content[str(ctx.author.id)]
+                        already_content['emoji'] = eparameter
+                        rlid = already_content['roleid']
+                        await ctx.guild.get_role(int(rlid)).edit(unicode_emoji=eparameter)
+
+                        main_file_content[str(ctx.author.id)] = already_content
+                        write_file(main_file_content)
+
+                        embed = discord.Embed(description=f"Role Icon Updated to {eparameter}", color=0x2E3136)
+                        embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly")
+                        return await ctx.respond(embed=embed)
                     already_content = main_file_content[str(ctx.author.id)]
 
                     response = requests.get(url)
                     data = response.content
 
-                    iconurl = data
-                    url = data
-
                     already_content['emoji'] = url
 
                     rlid = already_content['roleid']
-                    await ctx.guild.get_role(int(rlid)).edit(icon=(iconurl))
+                    await ctx.guild.get_role(int(rlid)).edit(icon=(data))
 
                     main_file_content[str(ctx.author.id)] = already_content
                     write_file(main_file_content)
 
-                    embed = discord.Embed(description=f"Role Icon Updated to {eparameter}", color=0x2E3136)
+                    embed = discord.Embed(description=f"Role Icon Updated to {url}", color=0x2E3136)
                     await ctx.respond(embed=embed)
 
                 except Exception as e:
                     print(e)
                     embed = discord.Embed(
                         title="Icon Set Successfully :white_check_mark:", color=0x2E3136)
-                    embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly and the emoji belongs to this server")
+                    embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly")
                     await ctx.respond(embed=embed)
 
 

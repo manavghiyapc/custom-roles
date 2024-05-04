@@ -6,7 +6,7 @@ import json
 import requests
 from data_access import read_file, write_file
 
-role_access = 'VIP Trainer'
+role_id = "ROLE_ID_HERE"
 
 template = {
     "name": "default",
@@ -49,9 +49,9 @@ class role(commands.Cog):
             self,
             ctx,
             parameter: Option(str, "Enter Name for the Role", required=True)): # type: ignore
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
 
-        if role_access in str(ctx.author.roles):
+        if any(r.id == int(role_id) for r in ctx.author.roles):
 
             main_file_content = read_file()
 
@@ -96,15 +96,12 @@ class role(commands.Cog):
             self,
             ctx,
             parameter: Option(str, "Enter HexColour for the Role", required=True)): # type: ignore
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
 
         parameter = parameter.replace('#', '').replace('0x', '')
         parameter = "0x" + parameter
 
-
-
-        if role_access in str(ctx.author.roles):
-
+        if any(r.id == int(role_id) for r in ctx.author.roles):
             main_file_content = read_file()
 
             if str(ctx.author.id) in main_file_content:
@@ -134,12 +131,12 @@ class role(commands.Cog):
     @role.command(description="Add Icon to Custom Role")
     async def icon(self, ctx, parameter: Option(str, "Enter an Emoji", required=True)): # type: ignore
 
-        await ctx.response.defer()
+        await ctx.response.defer(ephemeral=True)
         eparameter = parameter
         parameter = parameter.split(':')[-1].replace('>','')
         main_file_content = read_file()
 
-        if role_access in str(ctx.author.roles):
+        if any(r.id == int(role_id) for r in ctx.author.roles):
             if str(ctx.author.id) in main_file_content:
                 try:
                     url = get_emoji_url(eparameter)

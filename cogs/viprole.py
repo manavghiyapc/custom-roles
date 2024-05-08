@@ -5,6 +5,7 @@ from discord.ext import commands
 import json
 import requests
 from data_access import read_file, write_file
+import re
 
 role_id = 1069444965870088192
 
@@ -16,7 +17,7 @@ template = {
 }
 
 color_map = {
-    "black": "0x000000",
+    "black": "0x080808",
     "white": "0xFFFFFF",
     "red": "0xFF0000",
     "green": "0x00FF00",
@@ -25,6 +26,7 @@ color_map = {
     "cyan": "0x00FFFF",
     "magenta": "0xFF00FF",
     "gray": "0x808080",
+    "grey": "0x808080",
     "brown": "0xA52A2A",
     "orange": "0xFFA500",
     "pink": "0xFFC0CB",
@@ -39,10 +41,22 @@ color_map = {
 }
 
 def get_emoji_url(text: str):
-    if text.startswith("<:") or text.startswith("<a:") and text.endswith(">"): 
+    if text.startswith("http") or text.startswith("https"):
+        # If the parameter is already a URL, return it directly
+        return text
+    elif text.startswith("<:") or text.startswith("<a:") and text.endswith(">"): 
+        # If it's a custom emoji, extract the emoji ID and construct the URL
         [first, _, third] = text.split(":")
         emojiId = third.replace(">", "")
         return f"https://cdn.discordapp.com/emojis/{emojiId}.png"
+    elif "(" in text and ")" in text:
+        # If the parameter contains brackets, extract the URL within the brackets
+        url_match = re.search(r'\((.*?)\)', text)
+        if url_match:
+            return url_match.group(1)
+    return None  # Return None if the parameter doesn't contain a URL or custom emoji
+
+
 
 def read_file():
     with open("data.json", "r") as file:
@@ -84,7 +98,7 @@ class role(commands.Cog):
                 await role.edit(name=parameter, reason=f"Role Edit by {ctx.author.name}")
 
                 embed = discord.Embed(
-                    description=f"Role Name Updated from `{oldname}` to <@&{oldid}>", color=0x2E3136)
+                    description=f"Role Name Updated from `{oldname}` to <@&{oldid}>", color=0x05ff72)
                 await ctx.respond(embed=embed)
             else:
                 main_file_content = read_file()
@@ -93,18 +107,18 @@ class role(commands.Cog):
 
                 role = await ctx.guild.create_role(name=parameter, reason=f"VIP Role Creation by {ctx.author.name}")
 
-                await role.edit(position=45)
+                await role.edit(position=60)
                 await ctx.author.add_roles(role)
                 newtemp["roleid"] = str(role.id)
                 main_file_content[str(ctx.author.id)] = newtemp 
                 write_file(main_file_content)
 
                 embed = discord.Embed(
-                    description=f"<@&{str(role.id)}> Role Created for {str(ctx.author.name)}", color=0x2E3136)
+                    description=f"<@&{str(role.id)}> Role Created for {str(ctx.author.name)}", color=0x05ff72)
                 await ctx.respond(embed=embed)
         else:
             embed = discord.Embed(
-                title="You do not have an Active VIP Membership", color=0x2E3136)
+                title="You do not have an Active VIP Membership", color=0x05ff72)
             await ctx.respond(embed=embed)
 
     @role.command(description='Add Colour to Role')
@@ -134,16 +148,16 @@ class role(commands.Cog):
                 await ctx.guild.get_role(int(oldid)).edit(color=int(parameter, 16), reason=f"Role Colour Edit by {ctx.author.name}")
 
                 embed = discord.Embed(
-                    description=f"Role Colour Updated to #{parameter.replace('0x', '')} <@&{oldid}>", color=0x2E3136)
+                    description=f"Role Colour Updated to #{parameter.replace('0x', '')} <@&{oldid}>", color=0x05ff72)
                 await ctx.respond(embed=embed)
             else:
                 embed = discord.Embed(
-                    title="Please use `/role name` command first!", color=0x2E3136)
+                    title="Please use `/role name` command first!", color=0x05ff72)
                 await ctx.respond(embed=embed)
 
         else:
             embed = discord.Embed(
-                title="You do not have an Active VIP Membership", color=0x2E3136)
+                title="You do not have an Active VIP Membership", color=0x05ff72)
             await ctx.respond(embed=embed)
 
     @role.command(description="Add Icon to Custom Role")
@@ -167,8 +181,8 @@ class role(commands.Cog):
                         main_file_content[str(ctx.author.id)] = already_content
                         write_file(main_file_content)
 
-                        embed = discord.Embed(description=f"Role Icon Updated to {eparameter}", color=0x2E3136)
-                        embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly")
+                        embed = discord.Embed(description=f"Role Icon Updated to {eparameter}", color=0x05ff72)
+                        embed.set_footer(text=f"Send a message in any channel to test your role icon.")
                         return await ctx.respond(embed=embed)
                     already_content = main_file_content[str(ctx.author.id)]
 
@@ -183,24 +197,24 @@ class role(commands.Cog):
                     main_file_content[str(ctx.author.id)] = already_content
                     write_file(main_file_content)
 
-                    embed = discord.Embed(description=f"Role Icon Updated to {url}", color=0x2E3136)
+                    embed = discord.Embed(description=f"Role Icon Updated Successfully", color=0x05ff72)
                     await ctx.respond(embed=embed)
 
                 except Exception as e:
                     print(e)
                     embed = discord.Embed(
-                        title="Icon Set Successfully :white_check_mark:", color=0x2E3136)
-                    embed.set_footer(text=f"Send a message in any channel to test your role icon. \n\nIf you're unable to see your role icon, make sure you've used the command correctly")
+                        title="Error", color=0x05ff72)
+                    embed.set_footer(text=f"We could not update your icon. Message @kingpgc to fix it.")
                     await ctx.respond(embed=embed)
 
             else:
                 embed = discord.Embed(
-                    title="Please use `/role name` command first!", color=0x2E3136)
+                    title="Please use `/role name` command first!", color=0x05ff72)
                 await ctx.respond(embed=embed)
 
         else:
             embed = discord.Embed(
-                title="You do not have an Active VIP Membership", color=0x2E3136)
+                title="You do not have an Active VIP Membership", color=0x05ff72)
             await ctx.respond(embed=embed)
 
 
